@@ -90,14 +90,14 @@ export async function fetchCardData() {
 
 const ITEMS_PER_PAGE = 6;
 
+//Promise<InvoiceWithCustomer[]>
 export async function fetchFilteredInvoices(
   query: string,
   currentPage: number
-): Promise<InvoiceWithCustomer[]> {
+) {
   const from = (currentPage - 1) * ITEMS_PER_PAGE;
   const to = from + ITEMS_PER_PAGE - 1;
 
-  // Only filter by customer name in SQL
   const { data, error } = await supabase
     .from('invoices')
     .select(`
@@ -169,22 +169,25 @@ export async function fetchInvoicesPages(query: string) {
 }
 
 export async function fetchInvoiceById(id: string) {
-  const { data, error } = await supabase
-    .from('invoices')
-    .select('id, customer_id, amount, status')
-    .eq('id', id)
-    .single();
+  try {
+    const { data } = await supabase
+      .from('invoices')
+      .select('id, customer_id, amount, status')
+      .eq('id', id)
+      .single();
 
-  if (error) {
-    console.error('Database Error:', error);
+    if (!data) {
+      return null;
+    }
+
+    return {
+      ...data,
+      amount: data.amount / 100,
+    };
+  } catch (error) {
+    console.error('Error fetching invoice:', error);
     throw new Error('Failed to fetch invoice.');
   }
-
-  // Convert amount from cents to dollars
-  return {
-    ...data,
-    amount: data.amount / 100,
-  };
 }
 
 export async function fetchCustomers() {
