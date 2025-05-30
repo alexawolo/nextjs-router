@@ -77,7 +77,6 @@ export async function fetchLatestInvoices() {
 }
 
 export async function fetchCardData() {
-  // Fetch all invoices
   const { data, error } = await supabase
     .from('invoices')
     .select('amount, status');
@@ -86,6 +85,37 @@ export async function fetchCardData() {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch card data.');
   }
+
+  let totalPaidInvoices = 0;
+  let totalPendingInvoices = 0;
+  let numberOfInvoices = 0;
+
+  if (data) {
+    numberOfInvoices = data.length;
+    for (const invoice of data) {
+      if (invoice.status === 'paid') {
+        totalPaidInvoices += invoice.amount;
+      } else if (invoice.status === 'pending') {
+        totalPendingInvoices += invoice.amount;
+      }
+    }
+  }
+
+  const { count: numberOfCustomers, error: customerError } = await supabase
+    .from('customers')
+    .select('id', { count: 'exact', head: true });
+
+  if (customerError) {
+    console.error('Database Error:', customerError);
+    throw new Error('Failed to fetch customer count.');
+  }
+
+  return {
+    totalPaidInvoices,
+    totalPendingInvoices,
+    numberOfInvoices,
+    numberOfCustomers: numberOfCustomers ?? 0,
+  };
 }
 
 const ITEMS_PER_PAGE = 6;
